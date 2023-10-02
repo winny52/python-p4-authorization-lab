@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 from flask import Flask, make_response, jsonify, request, session
 from flask_migrate import Migrate
@@ -17,6 +16,13 @@ migrate = Migrate(app, db)
 db.init_app(app)
 
 api = Api(app)
+
+@app.before_request
+def check_if_logged_in():
+    endpoint_list = ["clear", "article_list", "show_article", "login", "logout" , "check_session"]
+
+    if (not session.get("user_id")) and ((request.endpoint) not in endpoint_list):
+        return {'error': '401 Unauthorized'}, 401
 
 class ClearSession(Resource):
 
@@ -87,12 +93,14 @@ class CheckSession(Resource):
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        articles = Article.query.filter(Article.is_member_only == True).all()
+        return [article.to_dict() for article in articles], 200
 
 class MemberOnlyArticle(Resource):
     
     def get(self, id):
-        pass
+        article = Article.query.filter(Article.id == id).first()
+        return article.to_dict(), 200
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
